@@ -69,6 +69,6 @@ namespace ehsproject.Controllers
             {
                 return Unauthorized();
             }
-        }
+        } 
     }
 }

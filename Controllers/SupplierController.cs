@@ -42,7 +42,7 @@ namespace ehsproject.Controllers
             {
                 return BadRequest("Email not exists");
             }
-            if (!BCrypt.Net.BCrypt.Verify(supplier.Pass, data.Pass))
+            if (!supplier.Pass.Equals(data.Pass))
             {
                 return BadRequest(new
                 {
@@ -85,6 +85,43 @@ namespace ehsproject.Controllers
             catch (Exception)
             {
                 return Unauthorized();
+            }
+        }
+        [HttpPut]
+        public IActionResult UpdatePassword(string oldPassword, string newPassword)
+        {
+            try
+            {
+                // Kiểm tra xem oldPassword và newPassword có hợp lệ không
+                if (string.IsNullOrEmpty(oldPassword) || string.IsNullOrEmpty(newPassword))
+                {
+                    return BadRequest("Mật khẩu không hợp lệ.");
+                }
+
+                var jwt = Request.Cookies["jwt"];
+                var token = _jwtServices.Verify(jwt);
+                string supplierCode = token.Issuer;
+
+                var supplier = _dbContext.Suppliers.Find(supplierCode);
+                if (supplier != null)
+                {
+                    // Xác thực mật khẩu cũ
+                    if (!oldPassword.Equals(supplier.Pass))
+                    {
+                        return Unauthorized("Mật khẩu cũ không đúng.");
+                    }
+                    supplier.Pass = newPassword;
+                    _dbContext.SaveChanges();
+                    return Ok("Cập nhật mật khẩu thành công.");
+                }
+
+                return NotFound("Không tìm thấy nhà cung cấp.");
+            }
+            catch (Exception ex)
+            {
+                // Xử lý lỗi và ghi log
+                Console.WriteLine($"Lỗi: {ex.Message}");
+                return StatusCode(500, "Đã xảy ra lỗi không mong muốn.");
             }
         }
     }
